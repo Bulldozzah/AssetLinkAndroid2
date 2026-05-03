@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Storefront
@@ -53,6 +54,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.assetlinkandroid.ui.AppViewModel
 import com.example.assetlinkandroid.ui.auth.AuthScreen
+import com.example.assetlinkandroid.ui.browse.BrowseScreen
 import com.example.assetlinkandroid.ui.dashboard.DashboardScreen
 import com.example.assetlinkandroid.ui.itemdetail.ItemDetailScreen
 import com.example.assetlinkandroid.ui.myitems.MyItemsScreen
@@ -68,7 +70,8 @@ private data class SidebarItem(
 )
 
 private val sidebarItems = listOf(
-    SidebarItem(Routes.DASHBOARD, "Browse", Icons.Filled.Storefront),
+    SidebarItem(Routes.DASHBOARD, "Home", Icons.Filled.Home),
+    SidebarItem(Routes.BROWSE, "Browse", Icons.Filled.Storefront),
     SidebarItem(Routes.MY_ITEMS, "My Items", Icons.Filled.Inventory2),
     SidebarItem(Routes.MY_LOANS, "My Loans", Icons.Filled.AccountBalance),
     SidebarItem(Routes.NOTIFICATIONS, "Inbox", Icons.Filled.Notifications),
@@ -158,6 +161,19 @@ private fun AuthenticatedShell(nav: NavHostController, appVm: AppViewModel) {
                             restoreState = true
                         }
                     },
+                    onNavToBrowse = {
+                        nav.navigate(Routes.BROWSE) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
+            }
+            composable(Routes.BROWSE) {
+                BrowseScreen(
+                    onItemClick = { id -> nav.navigate(Routes.itemDetail(id)) },
+                    onMenuClick = openDrawer,
                 )
             }
             composable(Routes.MY_ITEMS) {

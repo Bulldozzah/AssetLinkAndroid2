@@ -1,10 +1,7 @@
 package com.example.assetlinkandroid.ui.dashboard
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,9 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Inventory2
@@ -31,7 +28,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -46,7 +42,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,16 +49,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.example.assetlinkandroid.data.model.AppRole
-import com.example.assetlinkandroid.data.model.Item
-import com.example.assetlinkandroid.data.model.ItemStatus
 import com.example.assetlinkandroid.ui.AppViewModel
-import com.example.assetlinkandroid.ui.common.CountdownText
-import com.example.assetlinkandroid.ui.common.Money
 import com.example.assetlinkandroid.ui.common.StatusChip
 import com.example.assetlinkandroid.ui.common.StatusColors
-import com.example.assetlinkandroid.ui.common.label
 import com.example.assetlinkandroid.ui.theme.AppBorder
 import com.example.assetlinkandroid.ui.theme.AppPrimary
 
@@ -76,6 +65,7 @@ fun DashboardScreen(
     onNavToMyItems: () -> Unit = {},
     onNavToMyLoans: () -> Unit = {},
     onNavToNotifications: () -> Unit = {},
+    onNavToBrowse: () -> Unit = {},
     vm: DashboardViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -204,7 +194,7 @@ fun DashboardScreen(
                             }
                             if (s.isLender) {
                                 OutlinedButton(
-                                    onClick = { },
+                                    onClick = onNavToBrowse,
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
                                     border = BorderStroke(1.dp, AppBorder),
@@ -227,47 +217,42 @@ fun DashboardScreen(
                 }
             }
 
-            // Browse listings header
+            // Browse CTA card
             item(span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    "Browse Listings",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-
-            // Catalogue
-            when {
-                state.loading -> item(span = { GridItemSpan(maxLineSpan) }) {
-                    Box(
+                Card(
+                    onClick = onNavToBrowse,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, AppBorder),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        contentAlignment = Alignment.Center,
-                    ) { CircularProgressIndicator() }
-                }
-                state.error != null -> item(span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        "Failed to load: ${state.error}",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-                state.items.isEmpty() -> item(span = { GridItemSpan(maxLineSpan) }) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 32.dp),
-                        contentAlignment = Alignment.Center,
-                    ) { Text("No listings yet — check back soon.") }
-                }
-                else -> items(state.items, key = { it.id }) { item ->
-                    ItemCard(
-                        item   = item,
-                        topBid = state.topBids[item.id],
-                        onClick = { onItemClick(item.id) },
-                    )
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column {
+                            Text(
+                                "Browse Listings",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "Discover items to fund",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = AppPrimary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             }
         }
@@ -408,81 +393,6 @@ private fun StatCard(
     }
 }
 
-@Composable
-private fun ItemCard(item: Item, topBid: Double?, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, AppBorder),
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(130.dp)
-                    .background(Color.White),
-                contentAlignment = Alignment.Center,
-            ) {
-                val first = item.photos.firstOrNull()
-                if (first != null) {
-                    AsyncImage(
-                        model = first,
-                        contentDescription = item.title,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
-                        contentScale = ContentScale.Fit,
-                    )
-                } else {
-                    Text("📦", fontSize = 40.sp)
-                }
-            }
-
-            HorizontalDivider(color = AppBorder, thickness = 1.dp)
-
-            Column(Modifier.padding(10.dp)) {
-                Text(
-                    item.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Reserve ${Money.format(item.reserveAmount)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    "Interest ${(item.interestRate * 100).toInt()}% · ${item.loanDurationDays}d",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Top bid ${if (topBid != null) Money.format(topBid) else "—"}",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    StatusChip(
-                        text = item.status.label(),
-                        color = itemStatusColor(item.status),
-                    )
-                    Spacer(Modifier.size(6.dp))
-                    if (item.status == ItemStatus.LISTED) {
-                        CountdownText(item.biddingEndsAt)
-                    }
-                }
-            }
-        }
-    }
-}
 
 internal fun roleColor(role: AppRole): Color = when (role) {
     AppRole.ADMIN -> StatusColors.Defaulted

@@ -24,4 +24,10 @@ class CategoryRepository @Inject constructor(
             order("sort_order", Order.ASCENDING)
         }.decodeList<ItemSubcategory>()
     }.getOrDefault(emptyList())
+
+    suspend fun allSubcategories(): List<ItemSubcategory> = runCatching {
+        supabase.from("item_subcategories").select {
+            order("sort_order", Order.ASCENDING)
+        }.decodeList<ItemSubcategory>()
+    }.getOrDefault(emptyList())
 }

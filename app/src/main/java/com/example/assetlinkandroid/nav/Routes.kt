@@ -3,6 +3,7 @@ package com.example.assetlinkandroid.nav
 object Routes {
     const val AUTH = "auth"
     const val DASHBOARD = "dashboard"
+    const val BROWSE = "browse"
     const val MY_ITEMS = "my_items"
     const val MY_LOANS = "my_loans"
     const val NOTIFICATIONS = "notifications"
