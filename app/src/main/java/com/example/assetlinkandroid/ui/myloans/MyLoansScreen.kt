@@ -6,6 +6,8 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -564,13 +566,10 @@ private fun loanStatusColor(status: LoanStatus) = when (status) {
     LoanStatus.CANCELLED -> StatusColors.Neutral
 }
 
+@Composable
 private fun Modifier.noRippleClickable(onClick: () -> Unit): Modifier =
-    this.then(
-        Modifier.padding(horizontal = 2.dp).run {
-            androidx.compose.foundation.clickable(
-                indication = null,
-                interactionSource = null,
-                onClick = onClick,
-            )
-        }
+    this.clickable(
+        indication = null,
+        interactionSource = remember { MutableInteractionSource() },
+        onClick = onClick,
     )
