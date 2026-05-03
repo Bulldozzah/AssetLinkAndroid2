@@ -19,7 +19,9 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -57,6 +59,7 @@ import com.example.assetlinkandroid.ui.auth.AuthScreen
 import com.example.assetlinkandroid.ui.browse.BrowseScreen
 import com.example.assetlinkandroid.ui.dashboard.DashboardScreen
 import com.example.assetlinkandroid.ui.itemdetail.ItemDetailScreen
+import com.example.assetlinkandroid.ui.itemsforsale.ItemsForSaleScreen
 import com.example.assetlinkandroid.ui.myitems.MyItemsScreen
 import com.example.assetlinkandroid.ui.myloans.MyLoansScreen
 import com.example.assetlinkandroid.ui.notifications.NotificationsScreen
@@ -75,6 +78,7 @@ private val sidebarItems = listOf(
     SidebarItem(Routes.MY_ITEMS, "My Items", Icons.Filled.Inventory2),
     SidebarItem(Routes.MY_LOANS, "My Loans", Icons.Filled.AccountBalance),
     SidebarItem(Routes.NOTIFICATIONS, "Inbox", Icons.Filled.Notifications),
+    SidebarItem(Routes.ITEMS_FOR_SALE, "Items for Sale", Icons.Filled.ShoppingCart),
 )
 
 @Composable
@@ -188,6 +192,9 @@ private fun AuthenticatedShell(nav: NavHostController, appVm: AppViewModel) {
             }
             composable(Routes.NOTIFICATIONS) {
                 NotificationsScreen(appVm = appVm, onMenuClick = openDrawer)
+            }
+            composable(Routes.ITEMS_FOR_SALE) {
+                ItemsForSaleScreen(appVm = appVm, onMenuClick = openDrawer)
             }
             composable(
                 route = Routes.ITEM_DETAIL,

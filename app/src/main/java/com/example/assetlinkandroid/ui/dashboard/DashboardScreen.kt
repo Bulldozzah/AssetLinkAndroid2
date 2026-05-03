@@ -441,4 +441,7 @@ internal fun itemStatusColor(status: ItemStatus): Color = when (status) {
     ItemStatus.REPAID -> StatusColors.Repaid
     ItemStatus.AUCTIONED -> StatusColors.Closed
     ItemStatus.REJECTED -> StatusColors.Rejected
+    ItemStatus.FOR_SALE -> StatusColors.Listed
+    ItemStatus.UNDER_OFFER -> StatusColors.Pending
+    ItemStatus.SOLD -> StatusColors.Funded
 }

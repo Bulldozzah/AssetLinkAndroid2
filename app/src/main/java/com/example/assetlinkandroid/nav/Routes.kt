@@ -7,6 +7,7 @@ object Routes {
     const val MY_ITEMS = "my_items"
     const val MY_LOANS = "my_loans"
     const val NOTIFICATIONS = "notifications"
+    const val ITEMS_FOR_SALE = "items_for_sale"
     const val ITEM_DETAIL = "item/{itemId}"
 
     fun itemDetail(itemId: String) = "item/$itemId"

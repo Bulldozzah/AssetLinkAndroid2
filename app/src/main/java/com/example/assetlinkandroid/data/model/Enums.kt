@@ -25,7 +25,10 @@ enum class ItemStatus {
     @SerialName("funded") FUNDED,
     @SerialName("repaid") REPAID,
     @SerialName("auctioned") AUCTIONED,
-    @SerialName("rejected") REJECTED;
+    @SerialName("rejected") REJECTED,
+    @SerialName("for_sale") FOR_SALE,
+    @SerialName("under_offer") UNDER_OFFER,
+    @SerialName("sold") SOLD;
 }
 
 @Serializable
