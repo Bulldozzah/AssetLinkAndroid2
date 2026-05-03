@@ -1,31 +1,42 @@
 package com.example.assetlinkandroid.ui.dashboard
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -33,11 +44,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -50,6 +64,8 @@ import com.example.assetlinkandroid.ui.common.Money
 import com.example.assetlinkandroid.ui.common.StatusChip
 import com.example.assetlinkandroid.ui.common.StatusColors
 import com.example.assetlinkandroid.ui.common.label
+import com.example.assetlinkandroid.ui.theme.AppBorder
+import com.example.assetlinkandroid.ui.theme.AppPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,10 +73,14 @@ fun DashboardScreen(
     appVm: AppViewModel,
     onItemClick: (String) -> Unit,
     onMenuClick: () -> Unit,
+    onNavToMyItems: () -> Unit = {},
+    onNavToMyLoans: () -> Unit = {},
+    onNavToNotifications: () -> Unit = {},
     vm: DashboardViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val session by appVm.session.collectAsStateWithLifecycle()
+    val needsRoleSetup = session != null && !session!!.isBorrower && !session!!.isLender
 
     Scaffold(
         topBar = {
@@ -84,52 +104,306 @@ fun DashboardScreen(
             )
         }
     ) { padding ->
-        Column(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
+            // Role badges
             session?.let { s ->
-                if (s.roles.isNotEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        s.roles.sortedBy { it.name }.forEach { role ->
-                            StatusChip(text = role.display, color = roleColor(role))
+                        if (s.roles.isEmpty()) {
+                            StatusChip(text = "No role yet", color = Color(0xFF9CA3AF))
+                        } else {
+                            s.roles.sortedBy { it.name }.forEach { role ->
+                                StatusChip(text = role.display, color = roleColor(role))
+                            }
                         }
                     }
                 }
             }
 
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    CircularProgressIndicator()
+            // Role setup card — shown when user has no borrower or lender role
+            if (needsRoleSetup) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    RoleSelectionCard(
+                        assigning = state.assigningRole,
+                        onBorrow = { vm.assignRole(AppRole.BORROWER) { appVm.refreshSession() } },
+                        onLend   = { vm.assignRole(AppRole.LENDER)   { appVm.refreshSession() } },
+                    )
                 }
-                state.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("Failed to load: ${state.error}", color = MaterialTheme.colorScheme.error)
-                }
-                state.items.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Text("No listings yet — check back soon.")
-                }
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize(),
+            }
+
+            // Stats row
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(state.items, key = { it.id }) { item ->
-                        ItemCard(
-                            item = item,
-                            topBid = state.topBids[item.id],
-                            onClick = { onItemClick(item.id) },
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        label   = "My Items",
+                        count   = state.myItemsCount,
+                        icon    = Icons.Filled.Inventory2,
+                        loading = state.statsLoading,
+                        onClick = onNavToMyItems,
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        label   = "My Loans",
+                        count   = state.myLoansCount,
+                        icon    = Icons.Filled.AccountBalance,
+                        loading = state.statsLoading,
+                        onClick = onNavToMyLoans,
+                    )
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        label   = "Alerts",
+                        count   = state.unreadCount,
+                        icon    = Icons.Filled.Notifications,
+                        loading = state.statsLoading,
+                        onClick = onNavToNotifications,
+                    )
+                }
+            }
+
+            // Quick actions based on role
+            session?.let { s ->
+                if (s.isBorrower || s.isLender) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            if (s.isBorrower) {
+                                Button(
+                                    onClick = onNavToMyItems,
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Add,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.size(6.dp))
+                                    Text(
+                                        "Pawn a new item",
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                            if (s.isLender) {
+                                OutlinedButton(
+                                    onClick = { },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, AppBorder),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Storefront,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.size(6.dp))
+                                    Text(
+                                        "Browse items",
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Browse listings header
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    "Browse Listings",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+
+            // Catalogue
+            when {
+                state.loading -> item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { CircularProgressIndicator() }
+                }
+                state.error != null -> item(span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        "Failed to load: ${state.error}",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                state.items.isEmpty() -> item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("No listings yet — check back soon.") }
+                }
+                else -> items(state.items, key = { it.id }) { item ->
+                    ItemCard(
+                        item   = item,
+                        topBid = state.topBids[item.id],
+                        onClick = { onItemClick(item.id) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoleSelectionCard(
+    assigning: Boolean,
+    onBorrow: () -> Unit,
+    onLend: () -> Unit,
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, AppBorder),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                "Get started with AssetLink",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                "Choose your role to unlock features",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(14.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedButton(
+                    onClick = onBorrow,
+                    enabled = !assigning,
+                    modifier = Modifier.weight(1f).height(80.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, AppBorder),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("📦", fontSize = 20.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "I want to borrow",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+                Button(
+                    onClick = onLend,
+                    enabled = !assigning,
+                    modifier = Modifier.weight(1f).height(80.dp),
+                    shape = RoundedCornerShape(10.dp),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("💰", fontSize = 20.sp)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "I want to lend",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            color = Color.White,
                         )
                     }
                 }
             }
+            if (assigning) {
+                Spacer(Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AppPrimary,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun StatCard(
+    modifier: Modifier = Modifier,
+    label: String,
+    count: Int,
+    icon: ImageVector,
+    loading: Boolean,
+    onClick: () -> Unit,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, AppBorder),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = AppPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.height(6.dp))
+            if (loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = AppPrimary,
+                )
+            } else {
+                Text(
+                    count.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+            )
         }
     }
 }
@@ -140,37 +414,40 @@ private fun ItemCard(item: Item, topBid: Double?, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(1.dp, AppBorder),
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    .height(130.dp)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center,
             ) {
                 val first = item.photos.firstOrNull()
                 if (first != null) {
                     AsyncImage(
                         model = first,
                         contentDescription = item.title,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text("No photo", style = MaterialTheme.typography.bodySmall)
-                    }
+                            .padding(12.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                } else {
+                    Text("📦", fontSize = 40.sp)
                 }
             }
+
+            HorizontalDivider(color = AppBorder, thickness = 1.dp)
+
             Column(Modifier.padding(10.dp)) {
                 Text(
                     item.title,
-                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -178,24 +455,26 @@ private fun ItemCard(item: Item, topBid: Double?, onClick: () -> Unit) {
                 Text(
                     "Reserve ${Money.format(item.reserveAmount)}",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     "Interest ${(item.interestRate * 100).toInt()}% · ${item.loanDurationDays}d",
                     style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "Top bid ${if (topBid != null) Money.format(topBid) else "—"}",
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     StatusChip(
                         text = item.status.label(),
                         color = itemStatusColor(item.status),
                     )
-                    Spacer(Modifier.size(8.dp))
+                    Spacer(Modifier.size(6.dp))
                     if (item.status == ItemStatus.LISTED) {
                         CountdownText(item.biddingEndsAt)
                     }

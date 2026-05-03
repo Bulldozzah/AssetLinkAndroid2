@@ -137,6 +137,27 @@ private fun AuthenticatedShell(nav: NavHostController, appVm: AppViewModel) {
                     appVm = appVm,
                     onItemClick = { id -> nav.navigate(Routes.itemDetail(id)) },
                     onMenuClick = openDrawer,
+                    onNavToMyItems = {
+                        nav.navigate(Routes.MY_ITEMS) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavToMyLoans = {
+                        nav.navigate(Routes.MY_LOANS) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onNavToNotifications = {
+                        nav.navigate(Routes.NOTIFICATIONS) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
                 )
             }
             composable(Routes.MY_ITEMS) {

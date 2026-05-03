@@ -18,6 +18,12 @@ class RoleRepository @Inject constructor(
         return rows.map { it.role }.toSet()
     }
 
+    suspend fun assignRole(userId: String, role: AppRole) {
+        supabase.from("user_roles").upsert(
+            UserRoleRow(userId = userId, role = role)
+        )
+    }
+
     suspend fun selfAssignBorrowerLender(userId: String) {
         runCatching {
             supabase.from("user_roles").insert(
