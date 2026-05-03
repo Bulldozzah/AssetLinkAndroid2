@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.assetlinkandroid.data.model.Item
 import com.example.assetlinkandroid.data.model.Loan
+import com.example.assetlinkandroid.data.model.NewAppNotification
 import com.example.assetlinkandroid.data.model.NewPaymentProof
 import com.example.assetlinkandroid.data.model.PaymentProof
 import com.example.assetlinkandroid.data.model.ProofKind
 import com.example.assetlinkandroid.data.repository.AuthRepository
 import com.example.assetlinkandroid.data.repository.ItemRepository
 import com.example.assetlinkandroid.data.repository.LoanRepository
+import com.example.assetlinkandroid.data.repository.NotificationRepository
 import com.example.assetlinkandroid.data.repository.PaymentProofRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -41,6 +43,7 @@ class MyLoansViewModel @Inject constructor(
     private val loanRepo: LoanRepository,
     private val itemRepo: ItemRepository,
     private val proofRepo: PaymentProofRepository,
+    private val notifRepo: NotificationRepository,
     private val authRepo: AuthRepository,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -74,7 +77,13 @@ class MyLoansViewModel @Inject constructor(
         }
     }
 
-    fun uploadProof(loanId: String, kind: String, amount: Double, uri: android.net.Uri) {
+    fun uploadProof(
+        loanId: String,
+        kind: String,
+        amount: Double,
+        uri: android.net.Uri,
+        note: String? = null,
+    ) {
         val uid = authRepo.currentUserId() ?: return
         _state.value = _state.value.copy(uploadingFor = loanId, message = null)
         viewModelScope.launch {
@@ -92,8 +101,21 @@ class MyLoansViewModel @Inject constructor(
                         submitterId = uid,
                         amount = amount,
                         proofUrl = publicUrl,
+                        note = note?.ifBlank { null },
                     )
                 )
+                // Notify counterparty
+                val loan = loanRepo.byId(loanId)
+                if (loan != null) {
+                    val recipientId = if (kind == FUNDING) loan.borrowerId else loan.lenderId
+                    val title = if (kind == FUNDING)
+                        "Funding proof submitted — awaiting loan officer review"
+                    else
+                        "Repayment proof submitted — awaiting loan officer review"
+                    runCatching {
+                        notifRepo.notify(NewAppNotification(userId = recipientId, title = title))
+                    }
+                }
             }
             _state.value = _state.value.copy(
                 uploadingFor = null,

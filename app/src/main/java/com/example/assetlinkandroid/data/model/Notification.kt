@@ -13,3 +13,11 @@ data class AppNotification(
     val read: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
 )
+
+@Serializable
+data class NewAppNotification(
+    @SerialName("user_id") val userId: String,
+    val title: String,
+    val body: String? = null,
+    val link: String? = null,
+)

@@ -1,6 +1,7 @@
 package com.example.assetlinkandroid.data.repository
 
 import com.example.assetlinkandroid.data.model.AppNotification
+import com.example.assetlinkandroid.data.model.NewAppNotification
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
@@ -36,6 +37,10 @@ class NotificationRepository @Inject constructor(
         supabase.from("notifications").update({ set("read", true) }) {
             filter { eq("id", id) }
         }
+    }
+
+    suspend fun notify(n: NewAppNotification) {
+        supabase.from("notifications").insert(n)
     }
 
     fun streamForUser(uid: String): Flow<PostgresAction> {
