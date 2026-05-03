@@ -22,6 +22,7 @@ data class DashboardUiState(
     val unreadCount: Int = 0,
     val statsLoading: Boolean = true,
     val assigningRole: Boolean = false,
+    val roleMessage: String? = null,
 )
 
 @HiltViewModel
@@ -66,12 +67,18 @@ class DashboardViewModel @Inject constructor(
 
     fun assignRole(role: AppRole, onRefresh: () -> Unit) {
         val uid = authRepo.currentUserId() ?: return
-        _state.value = _state.value.copy(assigningRole = true)
+        _state.value = _state.value.copy(assigningRole = true, roleMessage = null)
         viewModelScope.launch {
-            runCatching { roleRepo.assignRole(uid, role) }
-            _state.value = _state.value.copy(assigningRole = false)
+            val result = runCatching { roleRepo.assignRole(uid, role) }
+            val msg = if (result.isSuccess) "You are now a ${role.name.lowercase()}"
+                      else result.exceptionOrNull()?.message
+            _state.value = _state.value.copy(assigningRole = false, roleMessage = msg)
             onRefresh()
             refreshStats()
         }
+    }
+
+    fun clearRoleMessage() {
+        _state.value = _state.value.copy(roleMessage = null)
     }
 }

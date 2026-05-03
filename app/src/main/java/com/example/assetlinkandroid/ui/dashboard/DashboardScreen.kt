@@ -28,16 +28,21 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,9 +76,19 @@ fun DashboardScreen(
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     val session by appVm.session.collectAsStateWithLifecycle()
-    val needsRoleSetup = session != null && !session!!.isBorrower && !session!!.isLender
+    // Show prompt when EITHER borrower or lender role is missing (mirrors web logic)
+    val needsRoleSetup = session != null && (!session!!.isBorrower || !session!!.isLender)
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.roleMessage) {
+        state.roleMessage?.let {
+            snackbarHostState.showSnackbar(it)
+            vm.clearRoleMessage()
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -122,13 +137,15 @@ fun DashboardScreen(
                 }
             }
 
-            // Role setup card — shown when user has no borrower or lender role
+            // Role setup card — shown when either borrower or lender role is missing
             if (needsRoleSetup) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     RoleSelectionCard(
-                        assigning = state.assigningRole,
-                        onBorrow = { vm.assignRole(AppRole.BORROWER) { appVm.refreshSession() } },
-                        onLend   = { vm.assignRole(AppRole.LENDER)   { appVm.refreshSession() } },
+                        isBorrower = session?.isBorrower == true,
+                        isLender   = session?.isLender == true,
+                        assigning  = state.assigningRole,
+                        onBorrow   = { vm.assignRole(AppRole.BORROWER) { appVm.refreshSession() } },
+                        onLend     = { vm.assignRole(AppRole.LENDER)   { appVm.refreshSession() } },
                     )
                 }
             }
@@ -262,20 +279,27 @@ fun DashboardScreen(
 
 @Composable
 private fun RoleSelectionCard(
+    isBorrower: Boolean,
+    isLender: Boolean,
     assigning: Boolean,
     onBorrow: () -> Unit,
     onLend: () -> Unit,
 ) {
+    val title = if (!isBorrower && !isLender)
+        "Pick how you want to use AssetLink"
+    else
+        "Unlock the other side of AssetLink"
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(1.dp, AppBorder),
+        border = BorderStroke(2.dp, AppBorder),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                "Get started with AssetLink",
+                title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -290,40 +314,44 @@ private fun RoleSelectionCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedButton(
-                    onClick = onBorrow,
-                    enabled = !assigning,
-                    modifier = Modifier.weight(1f).height(80.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, AppBorder),
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("📦", fontSize = 20.sp)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "I want to borrow",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                        )
+                if (!isBorrower) {
+                    OutlinedButton(
+                        onClick = onBorrow,
+                        enabled = !assigning,
+                        modifier = Modifier.weight(1f).height(80.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, AppBorder),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("📦", fontSize = 20.sp)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "I want to borrow",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
                 }
-                Button(
-                    onClick = onLend,
-                    enabled = !assigning,
-                    modifier = Modifier.weight(1f).height(80.dp),
-                    shape = RoundedCornerShape(10.dp),
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("💰", fontSize = 20.sp)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "I want to lend",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            textAlign = TextAlign.Center,
-                            color = Color.White,
-                        )
+                if (!isLender) {
+                    Button(
+                        onClick = onLend,
+                        enabled = !assigning,
+                        modifier = Modifier.weight(1f).height(80.dp),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("💰", fontSize = 20.sp)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                "I want to lend",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center,
+                                color = Color.White,
+                            )
+                        }
                     }
                 }
             }
