@@ -1,5 +1,6 @@
 package com.example.assetlinkandroid.ui.itemdetail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -36,6 +38,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -47,21 +50,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.example.assetlinkandroid.data.model.AppRole
 import com.example.assetlinkandroid.data.model.ItemStatus
 import com.example.assetlinkandroid.data.model.Offer
+import com.example.assetlinkandroid.data.model.OfferStatus
 import com.example.assetlinkandroid.ui.AppViewModel
 import com.example.assetlinkandroid.ui.common.CountdownText
+import com.example.assetlinkandroid.ui.common.DateFmt
 import com.example.assetlinkandroid.ui.common.Money
 import com.example.assetlinkandroid.ui.common.StatusChip
 import com.example.assetlinkandroid.ui.common.label
 import com.example.assetlinkandroid.ui.dashboard.itemStatusColor
+import com.example.assetlinkandroid.ui.theme.AppBorder
+import com.example.assetlinkandroid.ui.theme.AppPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,8 +122,9 @@ fun ItemDetailScreen(
                 val isOwner = session?.userId == item.borrowerId
                 val isLender = session?.has(AppRole.LENDER) == true && !isOwner
                 val biddingOpen = item.status == ItemStatus.LISTED
+                val biddingClosed = item.status == ItemStatus.BID_CLOSED
                 val canPlaceBid = isLender && biddingOpen
-                val canSelectBid = isOwner && biddingOpen && state.offers.isNotEmpty()
+                val canSelectBid = isOwner && (biddingOpen || biddingClosed) && state.offers.isNotEmpty()
 
                 Column(
                     Modifier
@@ -133,11 +143,19 @@ fun ItemDetailScreen(
                         Spacer(Modifier.height(12.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             StatusChip(text = item.status.label(), color = itemStatusColor(item.status))
-                            Spacer(Modifier.height(0.dp))
-                            if (biddingOpen) {
-                                Spacer(Modifier.width(12.dp))
-                                Text("Closes in: ", style = MaterialTheme.typography.bodySmall)
-                                CountdownText(item.biddingEndsAt)
+                            when {
+                                biddingClosed -> {
+                                    Spacer(Modifier.width(8.dp))
+                                    SuggestionChip(
+                                        onClick = {},
+                                        label = { Text("Bidding closed", style = MaterialTheme.typography.bodySmall) },
+                                    )
+                                }
+                                biddingOpen && item.biddingEndsAt != null -> {
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("Closes in: ", style = MaterialTheme.typography.bodySmall)
+                                    CountdownText(item.biddingEndsAt)
+                                }
                             }
                         }
                         Spacer(Modifier.height(12.dp))
@@ -145,6 +163,21 @@ fun ItemDetailScreen(
                         InfoRow("Interest", "${(item.interestRate * 100).toInt()}%")
                         InfoRow("Duration", "${item.loanDurationDays} days")
                         state.borrowerProfile?.fullName?.let { InfoRow("Borrower", it) }
+                        Spacer(Modifier.height(8.dp))
+                        HorizontalDivider()
+                        Spacer(Modifier.height(8.dp))
+
+                        // Current bid card — mirrors web's trophy card
+                        CurrentBidCard(
+                            topBid = state.topBid,
+                            currentTopBid = state.currentTopBid,
+                            reserveAmount = item.reserveAmount,
+                            pendingCount = state.offers.count { it.status == OfferStatus.PENDING },
+                            isOwner = isOwner,
+                            onAccept = if (isOwner && state.topBid != null)
+                                { pendingAcceptOfferId = state.topBid!!.id } else null,
+                        )
+
                         Spacer(Modifier.height(8.dp))
                         HorizontalDivider()
                         Spacer(Modifier.height(8.dp))
@@ -216,8 +249,9 @@ fun ItemDetailScreen(
 
                 if (showBidDialog) {
                     PlaceBidDialog(
-                        currentTop = state.topBid?.amount?.toInt(),
-                        reserve = item.reserveAmount.toInt(),
+                        minBid = state.minBidAmount,
+                        currentTopBid = state.currentTopBid,
+                        reserveAmount = item.reserveAmount,
                         onDismiss = { showBidDialog = false },
                         onConfirm = { amount ->
                             session?.userId?.let { uid ->
@@ -374,36 +408,116 @@ private fun BidRow(
 }
 
 @Composable
+private fun CurrentBidCard(
+    topBid: Offer?,
+    currentTopBid: Double?,
+    reserveAmount: Double,
+    pendingCount: Int,
+    isOwner: Boolean,
+    onAccept: (() -> Unit)?,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+        border = BorderStroke(1.dp, AppBorder),
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🏆", fontSize = 18.sp)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Current bid",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            if (currentTopBid != null) {
+                Text(
+                    Money.format(currentTopBid),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = AppPrimary,
+                )
+                topBid?.let {
+                    Text(
+                        "@ ${(it.proposedInterest * 100).toInt()}% interest",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    "$pendingCount active bid${if (pendingCount != 1) "s" else ""}" +
+                        (topBid?.createdAt?.let { " • placed ${DateFmt.format(it)}" } ?: ""),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (isOwner && onAccept != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Button(
+                        onClick = onAccept,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                    ) { Text("Accept current bid") }
+                }
+            } else {
+                Text(
+                    "No bids yet. Reserve is ${Money.format(reserveAmount)}.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun PlaceBidDialog(
-    currentTop: Int?,
-    reserve: Int,
+    minBid: Int,
+    currentTopBid: Double?,
+    reserveAmount: Double,
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit,
 ) {
-    val minBid = ((currentTop ?: (reserve - 1))) + 1
-    var text by remember { mutableStateOf(minBid.toString()) }
+    var text by remember(minBid) { mutableStateOf(minBid.toString()) }
+    val enteredAmount = text.toIntOrNull()
+    val isValid = enteredAmount != null && enteredAmount >= minBid
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Place a bid") },
         text = {
-            Column {
-                Text("Reserve: ${Money.format(reserve)}")
-                Text("Current top: ${if (currentTop != null) Money.format(currentTop) else "none"}")
-                Text("Minimum next bid: ${Money.format(minBid)}", fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(8.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (currentTopBid != null) {
+                    Text("Current top bid: ${Money.format(currentTopBid)}",
+                        style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("Reserve: ${Money.format(reserveAmount)}",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+                Text(
+                    "Minimum next bid: ${Money.format(minBid)}",
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                Spacer(Modifier.height(4.dp))
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it.filter(Char::isDigit) },
-                    label = { Text("Your bid (whole number)") },
+                    label = { Text("Your bid ($)") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = !isValid && text.isNotEmpty(),
+                    supportingText = if (!isValid && text.isNotEmpty()) {
+                        { Text("Must be ≥ ${Money.format(minBid)}") }
+                    } else null,
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { text.toIntOrNull()?.let(onConfirm) }) {
-                Text("Submit")
-            }
+            Button(
+                onClick = { enteredAmount?.let(onConfirm) },
+                enabled = isValid,
+            ) { Text("Submit") }
         },
         dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Cancel") } },
     )

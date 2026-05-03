@@ -8,6 +8,9 @@ import com.example.assetlinkandroid.data.model.ItemStatus
 import com.example.assetlinkandroid.data.model.LoanStatus
 import com.example.assetlinkandroid.data.model.NewLoan
 import com.example.assetlinkandroid.data.model.NewOffer
+import com.example.assetlinkandroid.data.model.OfferStatus
+import kotlin.math.ceil
+import kotlin.math.floor
 import com.example.assetlinkandroid.data.model.Offer
 import com.example.assetlinkandroid.data.model.Profile
 import com.example.assetlinkandroid.data.repository.ItemRepository
@@ -33,7 +36,31 @@ data class ItemDetailUiState(
     val selectedOfferId: String? = null,
     val message: String? = null,
 ) {
-    val topBid: Offer? get() = offers.maxByOrNull { it.amount }
+    // Highest pending offer visible to this client (may be limited by RLS)
+    private val topFromOffers: Double?
+        get() = offers.filter { it.status == OfferStatus.PENDING }
+            .maxByOrNull { it.amount }?.amount
+
+    // DB-trigger-maintained column — visible to everyone regardless of RLS
+    private val topFromItem: Double? get() = item?.currentTopBid
+
+    // True top bid: max of both sources (mirrors web logic)
+    val currentTopBid: Double?
+        get() = when {
+            topFromOffers != null && topFromItem != null -> maxOf(topFromOffers!!, topFromItem!!)
+            else -> topFromOffers ?: topFromItem
+        }
+
+    // Highest pending offer object (for display / accept flow)
+    val topBid: Offer?
+        get() = offers.filter { it.status == OfferStatus.PENDING }.maxByOrNull { it.amount }
+
+    // Minimum valid next bid
+    val minBidAmount: Int
+        get() = currentTopBid
+            ?.let { floor(it).toInt() + 1 }
+            ?: ceil(item?.reserveAmount ?: 0.0).toInt()
+
     val selectedOffer: Offer? get() = offers.firstOrNull { it.id == selectedOfferId }
 }
 
@@ -98,13 +125,13 @@ class ItemDetailViewModel @Inject constructor(
     fun placeBid(lenderId: String, amount: Int, onDone: () -> Unit) {
         val s = _state.value
         val item = s.item ?: return
-        val current = s.topBid?.amount ?: 0.0
-        if (amount <= current) {
-            _state.value = s.copy(message = "Bid must be higher than current top (${current.toInt()}).")
-            return
-        }
-        if (amount < item.reserveAmount) {
-            _state.value = s.copy(message = "Bid must meet reserve (${item.reserveAmount.toInt()}).")
+        val min = s.minBidAmount
+        if (amount < min) {
+            val msg = if (s.currentTopBid != null)
+                "Bid must be higher than the current \$${floor(s.currentTopBid!!).toInt()}"
+            else
+                "Bid must meet the reserve of \$${ceil(item.reserveAmount).toInt()}"
+            _state.value = s.copy(message = msg)
             return
         }
         _state.value = s.copy(placingBid = true, message = null)
@@ -120,9 +147,9 @@ class ItemDetailViewModel @Inject constructor(
                 )
                 // Mark all earlier offers on this item as withdrawn (superseded)
                 runCatching {
-                    s.offers.filter { it.lenderId != lenderId && it.status.name == "PENDING" }
+                    s.offers.filter { it.lenderId != lenderId && it.status == OfferStatus.PENDING }
                         .forEach { o ->
-                            offerRepo.setStatus(o.id, com.example.assetlinkandroid.data.model.OfferStatus.WITHDRAWN)
+                            offerRepo.setStatus(o.id, OfferStatus.WITHDRAWN)
                         }
                 }
             }

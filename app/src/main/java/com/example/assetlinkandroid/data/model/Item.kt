@@ -23,6 +23,7 @@ data class Item(
     @SerialName("loan_duration_days") val loanDurationDays: Int,
     @SerialName("bidding_duration_hours") val biddingDurationHours: Int? = null,
     @SerialName("bidding_ends_at") val biddingEndsAt: String? = null,
+    @SerialName("current_top_bid") val currentTopBid: Double? = null,
     val status: ItemStatus = ItemStatus.PENDING,
     @SerialName("agreement_signed") val agreementSigned: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
