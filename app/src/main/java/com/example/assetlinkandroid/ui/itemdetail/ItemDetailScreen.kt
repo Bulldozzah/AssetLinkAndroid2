@@ -174,8 +174,9 @@ fun ItemDetailScreen(
                             reserveAmount = item.reserveAmount,
                             pendingCount = state.offers.count { it.status == OfferStatus.PENDING },
                             isOwner = isOwner,
-                            onAccept = if (isOwner && state.topBid != null)
-                                { pendingAcceptOfferId = state.topBid!!.id } else null,
+                            onAccept = if (isOwner && state.topBid != null) {
+                                { pendingAcceptOfferId = state.topBid!!.id }
+                            } else null,
                         )
 
                         Spacer(Modifier.height(8.dp))
