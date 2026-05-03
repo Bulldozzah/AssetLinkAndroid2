@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,9 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -23,7 +24,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -83,20 +83,15 @@ fun MyItemsScreen(
                     Text("Error: ${state.error}", color = MaterialTheme.colorScheme.error)
                 }
                 state.items.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No items yet.")
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            "Visit a verified intake point to pawn an asset.",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
+                    Text(
+                        "You haven't pawned any items yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                else -> LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     items(state.items, key = { it.id }) { item ->
@@ -114,17 +109,22 @@ private fun MyItemRow(item: Item, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = BorderStroke(1.dp, AppBorder),
     ) {
-        Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Thumbnail
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(130.dp)
-                    .background(Color.White),
+                    .size(64.dp)
+                    .background(Color(0xFFF5F5F5), RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 val first = item.photos.firstOrNull()
@@ -133,33 +133,38 @@ private fun MyItemRow(item: Item, onClick: () -> Unit) {
                         model = first,
                         contentDescription = item.title,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(12.dp),
-                        contentScale = ContentScale.Fit,
+                            .size(64.dp)
+                            .background(Color(0xFFF5F5F5), RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop,
                     )
                 } else {
-                    Text("📦", fontSize = 40.sp)
+                    Text("📦", fontSize = 28.sp)
                 }
             }
 
-            HorizontalDivider(color = AppBorder, thickness = 1.dp)
+            Spacer(Modifier.width(12.dp))
 
-            Column(Modifier.padding(10.dp)) {
+            // Title + financial summary
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     item.title,
                     style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    "Reserve ${Money.format(item.reserveAmount)} · ${item.loanDurationDays}d",
+                    "${Money.format(item.reserveAmount)} \u00B7 ${item.interestRate}% \u00B7 ${item.loanDurationDays}d",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Spacer(Modifier.height(6.dp))
-                StatusChip(text = item.status.label(), color = itemStatusColor(item.status))
             }
+
+            Spacer(Modifier.width(8.dp))
+
+            // Status badge
+            StatusChip(text = item.status.label(), color = itemStatusColor(item.status))
         }
     }
 }
