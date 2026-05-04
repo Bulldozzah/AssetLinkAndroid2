@@ -26,8 +26,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.example.assetlinkandroid.ui.common.AssetLinkLogo
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -43,7 +43,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -135,20 +134,7 @@ fun AuthScreen(
                         modifier = Modifier.padding(horizontal = 28.dp, vertical = 32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_assetlink),
-                                contentDescription = "AssetLink",
-                                modifier = Modifier
-                                    .padding(14.dp)
-                                    .size(44.dp),
-                                tint = Color.Unspecified,
-                            )
-                        }
+                        AssetLinkLogo(showTagline = true)
 
                         Spacer(Modifier.height(20.dp))
 

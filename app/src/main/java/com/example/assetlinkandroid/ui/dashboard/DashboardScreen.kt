@@ -57,6 +57,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.assetlinkandroid.data.model.AppRole
 import com.example.assetlinkandroid.data.model.ItemStatus
 import com.example.assetlinkandroid.ui.AppViewModel
+import com.example.assetlinkandroid.ui.common.AssetLinkLogo
 import com.example.assetlinkandroid.ui.common.StatusChip
 import com.example.assetlinkandroid.ui.common.StatusColors
 import com.example.assetlinkandroid.ui.theme.AppBorder
@@ -93,7 +94,7 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("AssetLink", fontWeight = FontWeight.Bold)
+                        AssetLinkLogo(showTagline = false)
                         Text(
                             session?.email ?: "",
                             style = MaterialTheme.typography.bodySmall,
