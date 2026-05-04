@@ -20,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 data class LoanWithItem(
@@ -92,14 +91,14 @@ class MyLoansViewModel @Inject constructor(
                     ?: error("Couldn't read selected image.")
                 val ext = (context.contentResolver.getType(uri) ?: "image/jpeg")
                     .substringAfter('/').substringBefore(';').ifBlank { "jpg" }
-                val path = "$uid/${loanId}-${kind}-${UUID.randomUUID()}.$ext"
+                val path = "$loanId/${kind}-${System.currentTimeMillis()}.$ext"
                 val publicUrl = proofRepo.upload(path, bytes)
                 proofRepo.submit(
                     NewPaymentProof(
                         loanId = loanId,
                         kind = kind,
                         submitterId = uid,
-                        amount = amount,
+                        amount = kotlin.math.floor(amount),
                         proofUrl = publicUrl,
                         note = note?.ifBlank { null },
                     )

@@ -207,10 +207,13 @@ private fun LoanCard(
     val loan = lwi.loan
     val item = lwi.item
 
+    val latestFunding = lwi.proofs.firstOrNull { it.kind == ProofKind.FUNDING }
+    val latestRepayment = lwi.proofs.firstOrNull { it.kind == ProofKind.REPAYMENT }
+
     val canFund = side == Side.LENDER && loan.status == LoanStatus.PENDING &&
-        lwi.proofs.none { it.kind == ProofKind.FUNDING && it.status != ProofStatus.REJECTED }
+        (latestFunding == null || latestFunding.status == ProofStatus.REJECTED)
     val canRepay = side == Side.BORROWER && loan.status == LoanStatus.ACTIVE &&
-        lwi.proofs.none { it.kind == ProofKind.REPAYMENT && it.status != ProofStatus.REJECTED }
+        (latestRepayment == null || latestRepayment.status == ProofStatus.REJECTED)
 
     var showDialog by remember { mutableStateOf(false) }
     var dialogKind by remember { mutableStateOf(ProofKind.FUNDING) }
@@ -345,7 +348,7 @@ private fun ProofBlock(proof: PaymentProof, label: String) {
             .fillMaxWidth()
             .background(Color(0xFFF9FAFB), shape = RoundedCornerShape(8.dp))
             .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -359,7 +362,7 @@ private fun ProofBlock(proof: PaymentProof, label: String) {
             )
             Spacer(Modifier.weight(1f))
             Text(
-                "View",
+                "View full size",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = AppPrimary,
                     textDecoration = TextDecoration.Underline,
@@ -367,6 +370,17 @@ private fun ProofBlock(proof: PaymentProof, label: String) {
                 modifier = Modifier.noRippleClickable { uriHandler.openUri(proof.proofUrl) },
             )
         }
+        // Inline image preview
+        AsyncImage(
+            model = proof.proofUrl,
+            contentDescription = "$label image",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { uriHandler.openUri(proof.proofUrl) },
+        )
         Text(
             "${Money.format(proof.amount)} · submitted ${DateFmt.format(proof.createdAt)}",
             style = MaterialTheme.typography.bodySmall,
@@ -465,14 +479,14 @@ private fun UploadProofDialog(
         },
         confirmButton = {
             val uri = selectedUri
-            val amount = amountText.toDoubleOrNull()
+            val amount = amountText.toDoubleOrNull()?.takeIf { it > 0 }
             Button(
                 onClick = {
                     if (uri != null && amount != null) {
                         onSubmit(uri, amount, noteText.ifBlank { null })
                     }
                 },
-                enabled = !uploading && selectedUri != null && amountText.toDoubleOrNull() != null,
+                enabled = !uploading && selectedUri != null && amountText.toDoubleOrNull()?.takeIf { it > 0 } != null,
                 shape = RoundedCornerShape(8.dp),
             ) {
                 if (uploading) {
