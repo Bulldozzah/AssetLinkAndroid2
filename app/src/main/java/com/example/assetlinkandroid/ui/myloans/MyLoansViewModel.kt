@@ -112,7 +112,7 @@ class MyLoansViewModel @Inject constructor(
                     else
                         "Repayment proof submitted — awaiting loan officer review"
                     runCatching {
-                        notifRepo.notify(NewAppNotification(userId = recipientId, title = title))
+                        notifRepo.notify(NewAppNotification(userId = recipientId, title = title, link = "/my-loans"))
                     }
                 }
             }

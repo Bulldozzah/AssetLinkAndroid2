@@ -191,7 +191,17 @@ private fun AuthenticatedShell(nav: NavHostController, appVm: AppViewModel) {
                 MyLoansScreen(appVm = appVm, onMenuClick = openDrawer)
             }
             composable(Routes.NOTIFICATIONS) {
-                NotificationsScreen(appVm = appVm, onMenuClick = openDrawer)
+                NotificationsScreen(
+                    appVm = appVm,
+                    onMenuClick = openDrawer,
+                    onNavigate = { route ->
+                        nav.navigate(route) {
+                            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
             }
             composable(Routes.ITEMS_FOR_SALE) {
                 ItemsForSaleScreen(appVm = appVm, onMenuClick = openDrawer)

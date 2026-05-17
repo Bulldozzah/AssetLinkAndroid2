@@ -40,7 +40,12 @@ class NotificationsViewModel @Inject constructor(
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
             runCatching { notifRepo.forUser(uid) }
-                .onSuccess { _state.value = NotificationsUiState(loading = false, items = it) }
+                .onSuccess { list ->
+                    _state.value = NotificationsUiState(loading = false, items = list)
+                    if (list.any { !it.read }) {
+                        runCatching { notifRepo.markAllRead(uid) }
+                    }
+                }
                 .onFailure { _state.value = NotificationsUiState(loading = false, error = it.message) }
         }
     }

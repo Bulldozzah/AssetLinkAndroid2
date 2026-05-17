@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.assetlinkandroid.data.model.AppNotification
+import com.example.assetlinkandroid.nav.Routes
 import com.example.assetlinkandroid.ui.AppViewModel
 import com.example.assetlinkandroid.ui.common.DateFmt
 
@@ -46,6 +47,7 @@ import com.example.assetlinkandroid.ui.common.DateFmt
 fun NotificationsScreen(
     appVm: AppViewModel,
     onMenuClick: () -> Unit,
+    onNavigate: (route: String) -> Unit = {},
     vm: NotificationsViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
@@ -82,7 +84,15 @@ fun NotificationsScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(state.items, key = { it.id }) { n ->
-                        NotificationRow(n, onClick = { if (!n.read) vm.markRead(n.id) })
+                        NotificationRow(
+                            n = n,
+                            onClick = {
+                                val route = Routes.fromWebLink(n.link)
+                                if (route != null) {
+                                    onNavigate(route)
+                                }
+                            },
+                        )
                     }
                 }
             }

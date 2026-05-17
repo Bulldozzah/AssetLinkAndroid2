@@ -91,6 +91,7 @@ class ItemsForSaleViewModel @Inject constructor(
                             userId = sale.flaggedBy,
                             title = "Sale accepted — under offer",
                             body = "A buyer accepted \"${sale.itemTitle}\" for \$${ceil(sale.salePrice).toInt()}. Awaiting proof of payment.",
+                            link = "/loan-officer",
                         )
                     )
                 }
@@ -124,6 +125,7 @@ class ItemsForSaleViewModel @Inject constructor(
                             userId = sale.flaggedBy,
                             title = "Purchase proof submitted",
                             body = "A buyer submitted payment proof for \"${sale.itemTitle}\". Please review and approve.",
+                            link = "/loan-officer",
                         )
                     )
                 }

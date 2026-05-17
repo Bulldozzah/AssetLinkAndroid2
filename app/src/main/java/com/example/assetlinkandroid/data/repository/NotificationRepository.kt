@@ -39,6 +39,15 @@ class NotificationRepository @Inject constructor(
         }
     }
 
+    suspend fun markAllRead(uid: String) {
+        supabase.from("notifications").update({ set("read", true) }) {
+            filter {
+                eq("user_id", uid)
+                eq("read", false)
+            }
+        }
+    }
+
     suspend fun notify(n: NewAppNotification) {
         supabase.from("notifications").insert(n)
     }
