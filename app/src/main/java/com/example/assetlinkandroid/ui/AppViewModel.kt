@@ -29,6 +29,12 @@ class AppViewModel @Inject constructor(
     private val _unreadNotifications = MutableStateFlow(0)
     val unreadNotifications: StateFlow<Int> = _unreadNotifications.asStateFlow()
 
+    private val _pendingPasswordReset = MutableStateFlow(false)
+    val pendingPasswordReset: StateFlow<Boolean> = _pendingPasswordReset.asStateFlow()
+
+    fun flagPasswordReset() { _pendingPasswordReset.value = true }
+    fun clearPasswordReset() { _pendingPasswordReset.value = false }
+
     val sessionStatus: StateFlow<SessionStatus> = authRepo.sessionStatus
         .stateIn(viewModelScope, SharingStarted.Eagerly, SessionStatus.Initializing)
 
@@ -73,11 +79,14 @@ class AppViewModel @Inject constructor(
         }
     }
 
+    fun getAuthRepo(): AuthRepository = authRepo
+
     fun signOut() {
         viewModelScope.launch {
             runCatching { authRepo.signOut() }
             _session.value = null
             _unreadNotifications.value = 0
+            _pendingPasswordReset.value = false
         }
     }
 }

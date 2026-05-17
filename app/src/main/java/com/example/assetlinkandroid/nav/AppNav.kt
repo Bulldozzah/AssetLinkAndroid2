@@ -56,6 +56,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.assetlinkandroid.ui.AppViewModel
 import com.example.assetlinkandroid.ui.auth.AuthScreen
+import com.example.assetlinkandroid.ui.auth.ResetPasswordScreen
 import com.example.assetlinkandroid.ui.browse.BrowseScreen
 import com.example.assetlinkandroid.ui.dashboard.DashboardScreen
 import com.example.assetlinkandroid.ui.itemdetail.ItemDetailScreen
@@ -86,10 +87,20 @@ fun AppNav(appVm: AppViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     val sessionStatus by appVm.sessionStatus.collectAsStateWithLifecycle()
 
-    when (sessionStatus) {
-        SessionStatus.Initializing -> LoadingFullscreen()
-        is SessionStatus.NotAuthenticated -> AuthScreen(onAuthenticated = { /* status flow re-routes */ })
-        is SessionStatus.Authenticated -> AuthenticatedShell(nav, appVm)
+    val pendingReset by appVm.pendingPasswordReset.collectAsStateWithLifecycle()
+
+    when {
+        sessionStatus == SessionStatus.Initializing -> LoadingFullscreen()
+        sessionStatus is SessionStatus.NotAuthenticated -> AuthScreen(onAuthenticated = { /* status flow re-routes */ })
+        sessionStatus is SessionStatus.Authenticated && pendingReset -> {
+            ResetPasswordScreen(
+                authRepo = appVm.getAuthRepo(),
+                onDone = {
+                    appVm.clearPasswordReset()
+                },
+            )
+        }
+        sessionStatus is SessionStatus.Authenticated -> AuthenticatedShell(nav, appVm)
         else -> LoadingFullscreen()
     }
 }

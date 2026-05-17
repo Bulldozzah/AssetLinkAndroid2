@@ -51,7 +51,11 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun resetPasswordForEmail(email: String) {
-        supabase.auth.resetPasswordForEmail(email)
+        supabase.auth.resetPasswordForEmail(email, redirectUrl = "assetlink://auth/reset")
+    }
+
+    suspend fun updatePassword(newPassword: String) {
+        supabase.auth.modifyUser { password = newPassword }
     }
 
     suspend fun signOut() {
