@@ -92,9 +92,27 @@ class AuthViewModel @Inject constructor(
             if (result.isSuccess && s.mode == AuthUiState.Mode.SIGN_UP) {
                 update { it.copy(loading = false, error = null, registrationSuccess = true) }
             } else {
-                update { it.copy(loading = false, error = result.exceptionOrNull()?.message) }
+                update { it.copy(loading = false, error = friendlyAuthError(result.exceptionOrNull())) }
                 if (result.isSuccess) onSuccess()
             }
+        }
+    }
+
+    private fun friendlyAuthError(e: Throwable?): String? {
+        val msg = e?.message?.lowercase() ?: return null
+        return when {
+            "invalid login credentials" in msg ||
+            "invalid_credentials" in msg      -> "Incorrect email or password."
+            "email not confirmed" in msg       -> "Please verify your email before signing in."
+            "user already registered" in msg   -> "An account with this email already exists."
+            "rate limit" in msg ||
+            "too many requests" in msg         -> "Too many attempts. Please try again later."
+            "network" in msg ||
+            "timeout" in msg ||
+            "unable to resolve host" in msg    -> "Network error. Check your connection."
+            "user not found" in msg            -> "No account found with this email."
+            "weak password" in msg             -> "Password is too weak. Use at least 6 characters."
+            else                               -> "Something went wrong. Please try again."
         }
     }
 
