@@ -19,6 +19,8 @@ data class AuthUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val registrationSuccess: Boolean = false,
+    val showForgotDialog: Boolean = false,
+    val resetSent: Boolean = false,
 ) {
     enum class Mode { SIGN_IN, SIGN_UP }
 }
@@ -37,6 +39,8 @@ class AuthViewModel @Inject constructor(
     fun setPassword(v: String) = update { it.copy(password = v, error = null) }
     fun setFullName(v: String) = update { it.copy(fullName = v, error = null) }
     fun setPhone(v: String) = update { it.copy(phone = v.trim(), error = null) }
+    fun openForgotDialog() = update { it.copy(showForgotDialog = true, error = null, resetSent = false) }
+    fun closeForgotDialog() = update { it.copy(showForgotDialog = false, error = null, resetSent = false) }
 
     fun submit(onSuccess: () -> Unit) {
         val s = _state.value
@@ -62,6 +66,25 @@ class AuthViewModel @Inject constructor(
             } else {
                 update { it.copy(loading = false, error = result.exceptionOrNull()?.message) }
                 if (result.isSuccess) onSuccess()
+            }
+        }
+    }
+
+    fun sendResetEmail() {
+        val email = _state.value.email
+        if (email.isBlank()) {
+            update { it.copy(error = "Enter your email address.") }
+            return
+        }
+        update { it.copy(loading = true, error = null) }
+        viewModelScope.launch {
+            val result = runCatching { authRepo.sendPasswordResetEmail(email) }
+            update {
+                it.copy(
+                    loading = false,
+                    error = result.exceptionOrNull()?.message,
+                    resetSent = result.isSuccess,
+                )
             }
         }
     }

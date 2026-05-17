@@ -94,6 +94,64 @@ fun AuthScreen(
         )
     }
 
+    if (state.showForgotDialog) {
+        AlertDialog(
+            onDismissRequest = { vm.closeForgotDialog() },
+            title = { Text("Reset Password") },
+            text = {
+                Column {
+                    if (state.resetSent) {
+                        Text(
+                            "A password reset link has been sent to ${state.email}.",
+                            color = Gray700,
+                        )
+                    } else {
+                        Text(
+                            "Enter your email and we'll send you a link to reset your password.",
+                            color = Gray700,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = state.email,
+                            onValueChange = vm::setEmail,
+                            label = { Text("Email") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                if (state.resetSent) {
+                    Button(onClick = { vm.closeForgotDialog() }) {
+                        Text("Done")
+                    }
+                } else {
+                    Button(
+                        onClick = { vm.sendResetEmail() },
+                        enabled = !state.loading,
+                    ) {
+                        if (state.loading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White,
+                            )
+                        } else {
+                            Text("Send Link")
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { vm.closeForgotDialog() }) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -199,6 +257,7 @@ fun AuthScreen(
                                     "Forgot password?",
                                     fontSize = 12.sp,
                                     color = Blue500,
+                                    modifier = Modifier.clickable { vm.openForgotDialog() },
                                 )
                             }
                             Spacer(Modifier.height(4.dp))
