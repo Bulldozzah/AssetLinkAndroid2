@@ -76,6 +76,18 @@ fun AuthScreen(
     val isSignUp = state.mode == AuthUiState.Mode.SIGN_UP
     var showPassword by remember { mutableStateOf(false) }
 
+    if (state.showForgotPassword) {
+        ForgotPasswordDialog(
+            email = state.forgotPasswordEmail,
+            onEmailChange = vm::setForgotPasswordEmail,
+            loading = state.forgotPasswordLoading,
+            error = state.forgotPasswordError,
+            success = state.forgotPasswordSuccess,
+            onSend = vm::sendPasswordReset,
+            onDismiss = vm::dismissForgotPassword,
+        )
+    }
+
     if (state.registrationSuccess) {
         AlertDialog(
             onDismissRequest = { vm.dismissRegistrationSuccess() },
@@ -89,64 +101,6 @@ fun AuthScreen(
             confirmButton = {
                 Button(onClick = { vm.dismissRegistrationSuccess() }) {
                     Text("Go to Sign In")
-                }
-            },
-        )
-    }
-
-    if (state.showForgotDialog) {
-        AlertDialog(
-            onDismissRequest = { vm.closeForgotDialog() },
-            title = { Text("Reset Password") },
-            text = {
-                Column {
-                    if (state.resetSent) {
-                        Text(
-                            "A password reset link has been sent to ${state.email}.",
-                            color = Gray700,
-                        )
-                    } else {
-                        Text(
-                            "Enter your email and we'll send you a link to reset your password.",
-                            color = Gray700,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = state.email,
-                            onValueChange = vm::setEmail,
-                            label = { Text("Email") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                if (state.resetSent) {
-                    Button(onClick = { vm.closeForgotDialog() }) {
-                        Text("Done")
-                    }
-                } else {
-                    Button(
-                        onClick = { vm.sendResetEmail() },
-                        enabled = !state.loading,
-                    ) {
-                        if (state.loading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White,
-                            )
-                        } else {
-                            Text("Send Link")
-                        }
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { vm.closeForgotDialog() }) {
-                    Text("Cancel")
                 }
             },
         )
@@ -257,7 +211,7 @@ fun AuthScreen(
                                     "Forgot password?",
                                     fontSize = 12.sp,
                                     color = Blue500,
-                                    modifier = Modifier.clickable { vm.openForgotDialog() },
+                                    modifier = Modifier.clickable { vm.showForgotPassword() },
                                 )
                             }
                             Spacer(Modifier.height(4.dp))
@@ -407,6 +361,94 @@ fun AuthScreen(
             }
         }
     }
+}
+
+@Composable
+private fun ForgotPasswordDialog(
+    email: String,
+    onEmailChange: (String) -> Unit,
+    loading: Boolean,
+    error: String?,
+    success: Boolean,
+    onSend: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { if (!loading) onDismiss() },
+        title = {
+            Text(
+                if (success) "Email Sent" else "Reset Password",
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Column {
+                if (success) {
+                    Text(
+                        "A password reset link has been sent to $email.\n\n" +
+                        "Please check your inbox and follow the link to reset your password."
+                    )
+                } else {
+                    Text(
+                        "Enter your email address and we'll send you a link to reset your password.",
+                        fontSize = 14.sp,
+                        color = Gray500,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = onEmailChange,
+                        label = { Text("Email") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedContainerColor = Gray50,
+                            focusedContainerColor = Gray50,
+                            unfocusedBorderColor = Gray200,
+                            focusedBorderColor = Blue500,
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    if (error != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            error,
+                            color = Color(0xFFDC2626),
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (success) {
+                Button(onClick = onDismiss) { Text("OK") }
+            } else {
+                Button(
+                    onClick = onSend,
+                    enabled = !loading,
+                ) {
+                    if (loading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    } else {
+                        Text("Send Reset Link")
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            if (!success) {
+                TextButton(onClick = onDismiss, enabled = !loading) {
+                    Text("Cancel")
+                }
+            }
+        },
+    )
 }
 
 @Composable

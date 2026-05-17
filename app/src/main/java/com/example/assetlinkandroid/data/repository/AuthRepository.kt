@@ -50,7 +50,7 @@ class AuthRepository @Inject constructor(
         }
     }
 
-    suspend fun sendPasswordResetEmail(email: String) {
+    suspend fun resetPasswordForEmail(email: String) {
         supabase.auth.resetPasswordForEmail(email)
     }
 

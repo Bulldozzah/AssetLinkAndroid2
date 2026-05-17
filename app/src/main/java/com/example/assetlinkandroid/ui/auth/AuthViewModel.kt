@@ -19,8 +19,11 @@ data class AuthUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val registrationSuccess: Boolean = false,
-    val showForgotDialog: Boolean = false,
-    val resetSent: Boolean = false,
+    val showForgotPassword: Boolean = false,
+    val forgotPasswordEmail: String = "",
+    val forgotPasswordLoading: Boolean = false,
+    val forgotPasswordSuccess: Boolean = false,
+    val forgotPasswordError: String? = null,
 ) {
     enum class Mode { SIGN_IN, SIGN_UP }
 }
@@ -35,12 +38,37 @@ class AuthViewModel @Inject constructor(
 
     fun setMode(mode: AuthUiState.Mode) = update { it.copy(mode = mode, error = null, registrationSuccess = false) }
     fun dismissRegistrationSuccess() = update { it.copy(registrationSuccess = false, mode = AuthUiState.Mode.SIGN_IN) }
+
+    fun showForgotPassword() = update {
+        it.copy(showForgotPassword = true, forgotPasswordEmail = it.email, forgotPasswordError = null, forgotPasswordSuccess = false)
+    }
+    fun dismissForgotPassword() = update {
+        it.copy(showForgotPassword = false, forgotPasswordEmail = "", forgotPasswordError = null, forgotPasswordSuccess = false)
+    }
+    fun setForgotPasswordEmail(v: String) = update { it.copy(forgotPasswordEmail = v.trim(), forgotPasswordError = null) }
+
+    fun sendPasswordReset() {
+        val email = _state.value.forgotPasswordEmail
+        if (email.isBlank() || !email.contains("@")) {
+            update { it.copy(forgotPasswordError = "Please enter a valid email address.") }
+            return
+        }
+        update { it.copy(forgotPasswordLoading = true, forgotPasswordError = null) }
+        viewModelScope.launch {
+            val result = runCatching { authRepo.resetPasswordForEmail(email) }
+            update {
+                if (result.isSuccess) {
+                    it.copy(forgotPasswordLoading = false, forgotPasswordSuccess = true)
+                } else {
+                    it.copy(forgotPasswordLoading = false, forgotPasswordError = result.exceptionOrNull()?.message)
+                }
+            }
+        }
+    }
     fun setEmail(v: String) = update { it.copy(email = v.trim(), error = null) }
     fun setPassword(v: String) = update { it.copy(password = v, error = null) }
     fun setFullName(v: String) = update { it.copy(fullName = v, error = null) }
     fun setPhone(v: String) = update { it.copy(phone = v.trim(), error = null) }
-    fun openForgotDialog() = update { it.copy(showForgotDialog = true, error = null, resetSent = false) }
-    fun closeForgotDialog() = update { it.copy(showForgotDialog = false, error = null, resetSent = false) }
 
     fun submit(onSuccess: () -> Unit) {
         val s = _state.value
@@ -66,25 +94,6 @@ class AuthViewModel @Inject constructor(
             } else {
                 update { it.copy(loading = false, error = result.exceptionOrNull()?.message) }
                 if (result.isSuccess) onSuccess()
-            }
-        }
-    }
-
-    fun sendResetEmail() {
-        val email = _state.value.email
-        if (email.isBlank()) {
-            update { it.copy(error = "Enter your email address.") }
-            return
-        }
-        update { it.copy(loading = true, error = null) }
-        viewModelScope.launch {
-            val result = runCatching { authRepo.sendPasswordResetEmail(email) }
-            update {
-                it.copy(
-                    loading = false,
-                    error = result.exceptionOrNull()?.message,
-                    resetSent = result.isSuccess,
-                )
             }
         }
     }
