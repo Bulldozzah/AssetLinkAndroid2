@@ -11,7 +11,7 @@ import com.example.assetlinkandroid.ui.AppViewModel
 import com.example.assetlinkandroid.ui.theme.AssetlinkAndroidTheme
 import dagger.hilt.android.AndroidEntryPoint
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.handleDeepLinks
+import io.github.jan.supabase.auth.handleDeeplinks
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleRecoveryIntent(intent)
-        supabase.handleDeepLinks(intent)
+        supabase.handleDeeplinks(intent)
         enableEdgeToEdge()
         setContent {
             AssetlinkAndroidTheme {
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleRecoveryIntent(intent)
-        supabase.handleDeepLinks(intent)
+        supabase.handleDeeplinks(intent)
     }
 
     private fun handleRecoveryIntent(intent: Intent?) {

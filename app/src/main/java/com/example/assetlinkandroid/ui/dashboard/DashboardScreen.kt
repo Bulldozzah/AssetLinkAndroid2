@@ -236,6 +236,31 @@ fun DashboardScreen(
                 }
             }
 
+            // Pawn info banner
+            if (session?.isBorrower == true) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE)),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("\u2139\uFE0F", fontSize = 18.sp)
+                            Spacer(Modifier.size(8.dp))
+                            Text(
+                                "To pawn an item, drop it at a verified hub. Inspectors will list it for you.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF1E40AF),
+                            )
+                        }
+                    }
+                }
+            }
+
             // Browse CTA card
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Card(

@@ -55,7 +55,7 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun updatePassword(newPassword: String) {
-        supabase.auth.modifyUser { password = newPassword }
+        supabase.auth.updateUser { password = newPassword }
     }
 
     suspend fun signOut() {
