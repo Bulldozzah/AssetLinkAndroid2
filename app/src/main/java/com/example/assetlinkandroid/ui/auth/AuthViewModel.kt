@@ -60,7 +60,14 @@ class AuthViewModel @Inject constructor(
                 if (result.isSuccess) {
                     it.copy(forgotPasswordLoading = false, forgotPasswordSuccess = true)
                 } else {
-                    it.copy(forgotPasswordLoading = false, forgotPasswordError = result.exceptionOrNull()?.message)
+                    val raw = result.exceptionOrNull()?.message?.lowercase().orEmpty()
+                    val friendly = when {
+                        "rate limit" in raw || "too many requests" in raw -> "Too many attempts. Please try again later."
+                        "network" in raw || "timeout" in raw || "unable to resolve host" in raw -> "Network error. Check your connection."
+                        "user not found" in raw -> "No account found with this email."
+                        else -> "Unable to send reset link. Please check your email and try again."
+                    }
+                    it.copy(forgotPasswordLoading = false, forgotPasswordError = friendly)
                 }
             }
         }
