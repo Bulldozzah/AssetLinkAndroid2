@@ -1,6 +1,5 @@
 package com.example.assetlinkandroid.ui.auth
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,13 +20,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import com.example.assetlinkandroid.ui.common.AssetLinkLogo
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -41,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -51,7 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.assetlinkandroid.R
 
 private val Indigo600 = Color(0xFF4F46E5)
 private val Indigo500 = Color(0xFF6366F1)
@@ -261,45 +254,6 @@ fun AuthScreen(
                 }
             }
 
-            // Divider — "Or continue with"
-            if (!isSignUp) {
-                Spacer(Modifier.height(24.dp))
-
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    HorizontalDivider(color = Gray300)
-                    Text(
-                        "Or continue with",
-                        fontSize = 13.sp,
-                        color = Gray500,
-                        modifier = Modifier
-                            .background(Color.White)
-                            .padding(horizontal = 12.dp),
-                    )
-                }
-
-                Spacer(Modifier.height(24.dp))
-
-                // Social buttons - full width stacked
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    SocialButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        label = "Continue with Google",
-                        iconRes = R.drawable.ic_google,
-                    )
-                    SocialButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        label = "Continue with GitHub",
-                        iconRes = R.drawable.ic_github,
-                    )
-                }
-            }
-
             // Forgot password
             if (!isSignUp) {
                 Spacer(Modifier.height(24.dp))
@@ -426,29 +380,3 @@ private fun AuthField(
     )
 }
 
-@Composable
-private fun SocialButton(
-    modifier: Modifier = Modifier,
-    label: String,
-    iconRes: Int,
-) {
-    OutlinedButton(
-        onClick = {},
-        modifier = modifier.height(50.dp),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Gray200),
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = Color.White,
-            contentColor = Gray800,
-        ),
-    ) {
-        Icon(
-            painter = painterResource(iconRes),
-            contentDescription = label,
-            modifier = Modifier.size(18.dp),
-            tint = Color.Unspecified,
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(label, fontSize = 14.sp)
-    }
-}
